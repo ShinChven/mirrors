@@ -9,3 +9,5 @@ URL="https://raw.githubusercontent.com/ShinChven/mirrors/master/ubuntu/aliyun/$U
 echo $URL
 
 wget $URL -O /etc/apt/sources.list
+
+apt-get update
