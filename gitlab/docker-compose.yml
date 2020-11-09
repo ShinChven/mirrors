@@ -1,0 +1,53 @@
+web:
+  image: 'gitlab/gitlab-ce:latest' # Use official image https://hub.docker.com/r/gitlab/gitlab-ce/
+  restart: always
+  hostname: 'hostname.example.com'
+  container_name: gitlab # Container name
+  environment:
+    # Configure your GitLab https://docs.gitlab.com/omnibus/settings/README.html
+    GITLAB_OMNIBUS_CONFIG: |
+      # url config
+      external_url 'https://hostname.example.com'
+      # time zone
+      gitlab_rails['time_zone'] = 'Beijing'
+      # backup https://docs.gitlab.com/omnibus/settings/backups.html
+      gitlab_rails['backup_keep_time'] = 604800
+      # remote backup https://docs.gitlab.com/ee/raketasks/backup_restore.html#uploading-backups-to-a-remote-cloud-storage
+      # aliyun remote backup configuration (in my case)
+      gitlab_rails['backup_upload_connection'] = {
+        'provider' => 'aliyun',
+        'aliyun_accesskey_id' => '<your_accesskey_id>',
+        'aliyun_accesskey_secret' => '<your_accesskey_secret',
+        'aliyun_oss_endpoint' => 'http://end_point.aliyuncs.com',
+        'aliyun_oss_bucket' => 'bucket_name',
+        'aliyun_oss_location' => 'location'
+      }
+      gitlab_rails['backup_upload_remote_directory'] = 'gitlab'
+      # STMP/email configuration https://docs.gitlab.com/omnibus/settings/smtp.html
+      gitlab_rails['smtp_enable'] = true
+      gitlab_rails['smtp_address'] = 'smtp.mail.example.com'
+      gitlab_rails['smtp_port'] = 465
+      gitlab_rails['smtp_user_name'] = 'your@example.com'
+      gitlab_rails['smtp_password'] = 'your_email_password'
+      gitlab_rails['smtp_authentication'] = 'login'
+      gitlab_rails['smtp_enable_starttls_auto'] = true
+      gitlab_rails['smtp_tls'] = true
+      gitlab_rails['gitlab_email_from'] = 'your@example.com'
+      # In order to use external nginx and certbot, I disabled the nginx in container
+      nginx['listen_port'] = 80
+      nginx['listen_https'] = false
+      # Force https
+      # If your https is not correctly configured in host machine, you will not be able to visit your gitlab as all requests to port 80 is forwarded to port 443, but nothing is listening on 443.
+      nginx['proxy_set_headers'] = {
+        "X-Forwarded-Proto" => "https",
+        "X-Forwarded-Ssl" => "on"
+      }
+  # mapping container's port to host
+  ports:
+    - '10080:80' # curl 127.0.0.1:10080 to see your GitLab's web
+    - '10443:443'
+    - '10022:22'
+  volumes:
+    - '<host_path_for_gitlab>/config:/etc/gitlab'
+    - '<host_path_for_gitlab>/log:/var/log/gitlab'
+    - '<host_path_for_gitlab>/data:/var/opt/gitlab'
